@@ -1,0 +1,57 @@
+---
+title: "Exercise1_3"
+author: "Giulio Vicentini"
+date: "5/5/2020"
+output: html_document
+---
+
+download the data
+```{r}
+library(lubridate)
+library(readxl)
+library(curl)
+
+url <- "https://www.ecdc.europa.eu/sites/default/files/documents/"
+fname <- "COVID-19-geographic-disbtribution-worldwide-"
+date <- lubridate::today() - 1
+ext = ".xlsx"
+target <- paste(url ,fname ,date ,ext ,sep="")
+message ("target:", target)
+tmp_file <- tempfile("data", "/tmp" , fileext=ext)
+tmp <- curl::curl_download (target, destfile=tmp_file)
+
+covid <- readxl::read_xlsx(tmp_file)
+```
+
+sub-tibble wiyh only the the last day
+```{r}
+covid_last <- covid[covid$day==12 & covid$month==5, ]
+```
+
+number of deaths or cases grater than 200
+```{r}
+covid_200 <- covid_last[covid_last$cases>200 | covid_last$deaths>200, ]
+```
+
+top 10 countries in term of cases and deaths
+```{r}
+covid_cases <- covid_200[order(covid_200$cases, decreasing=TRUE), ]
+covid_deaths <- covid_200[order(covid_200$deaths, decreasing=TRUE), ]
+```
+
+plot US total number of deaths and cases in function of time
+```{r}
+covid_US <- covid[covid$geoId=='US', ]
+
+US_cases <- NULL
+US_deaths <- NULL
+for (i in 60:1) {
+      US_cases[61-i] <- sum(covid_US$cases[60:i])
+      US_deaths[61-i] <- sum(covid_US$deaths[60:i])
+}
+
+plot(covid_US$dateRep[60:1], US_cases, type='b', xlim=c(covid$dateRep[60], covid$dateRep[1]), xlab='time', ylab='#tot cases', main='US tot. cases vs time')
+plot(covid_US$dateRep[60:1], US_deaths, type='b', xlim=c(covid$dateRep[60], covid$dateRep[1]), xlab='time', ylab='#tot deaths', main='US tot. deaths vs time')
+
+```
+

@@ -1,0 +1,210 @@
+---
+title: "Exerccise5"
+author: "Giulio Vicentini"
+date: "22/5/2020"
+output: html_document
+---
+
+EX 1
+
+a)Bernoulli distribution with p=29/150
+
+b) again a binomial distribution (or a beta)
+
+c)
+```{r}
+#likelhood
+n <- 150
+r <- 29
+p <- seq(0, 1, 0.005)
+plot(p, dbinom(r, n, p), type='l', col='navy', lwd=3)
+abline(v=r/n, lty=2)
+
+#posterior 
+n_sample <- 2000
+delta_p <- 1/n_sample
+p <- seq(from=1/(2*n_sample), by=delta_p , length.out=n_sample)
+p_star <- dbinom(x=r, size=n, prob=p)
+p_norm <- p_star /( delta_p*sum(p_star )) 
+plot(p, p_norm , type="l", lwd=1.5, col='navy',  ylab="P(p | r,n,M)")
+p_mean <- delta_p*sum(p*p_norm) #the mean
+abline(v=p_mean , lty=2)
+
+#posterior as coniugate family
+a <- 1+r
+b <- 1+n-r
+post <- dbeta(p, a, b)
+plot(p, post , type="l", lwd=1.5, col='navy',  ylab="P(p | r,n,M)")
+p_mode <- p[which.max(post)] #most probable value
+abline(v=p_mode , lty=2)
+```
+
+EX 2
+draw the three prior
+```{r}
+x <- seq(-0.5, 1.5, 0.01)
+
+prior_anna <- dbeta(x, 4.8, 19.2)
+prior_benny <- dunif(x)
+prior_chris <- function(x) {
+    ch <- ifelse(x>=0 & x<0.1, 20*x, ifelse(x>=0.1 & x<0.3, 2, ifelse(x>=0.3 & x<0.5, 5-10*x, 0)))
+} 
+
+plot(x, prior_anna, type='l', main='prior_anna')
+plot(x, prior_benny, type='l', main='prior_benny')
+plot(x, prior_chris(x), type='l', main='prior_chris')
+```
+
+evaluate and draw the posterior
+```{r}
+n <- 100
+r <- 26
+
+n_sample <- 2000
+delta_p <- 1/n_sample
+p <- seq(from=1/(2*n_sample), by=delta_p , length.out=n_sample)
+
+#posterior
+post_anna <- dbeta(x=p, 4.8+r, 19.2+n-r)
+plot(p, post_anna , type="l", lwd=1.5, col='navy',  ylab="P(p | r,n,M)", main='post_anna')
+#mean
+E_anna <- delta_p*sum(p*post_anna)
+#mode
+mode_anna <- p[which.max(post_anna)]
+abline(v=mode_anna , lty=2)
+#confidence
+E2_anna <- delta_p*sum(p^2*post_anna)
+s_anna <- sqrt(E2_anna - E_anna^2)
+abline(v=mode_anna - 2*s_anna, lty=1)
+abline(v=mode_anna + 2*s_anna, lty=1)
+
+#posterior
+post_benny <- dbinom(r, n, p) 
+post_benny_norm <- post_benny /( delta_p*sum(post_benny )) #dbeta(p, 1+r, 1+n-r)
+plot(p, post_benny_norm , type="l", lwd=1.5, col='navy',  ylab="P(p | r,n,M)", main='post_benny')
+#mean
+E_benny <- delta_p*sum(p*post_benny_norm)
+#mode
+mode_benny <- p[which.max(post_benny_norm)]
+abline(v=mode_benny , lty=2)
+#confidence
+E2_benny <- delta_p*sum(p^2*post_benny_norm)
+s_benny <- sqrt(E2_benny - E_benny^2)
+abline(v=mode_benny - 2*s_benny, lty=1)
+abline(v=mode_benny + 2*s_benny, lty=1)
+
+#posterior
+post_chris <- dbinom(r, n, p)*prior_chris(p)
+post_chris_norm <- post_chris /( delta_p*sum(post_chris ))
+plot(p, post_chris_norm, type="l", lwd=1.5, col='navy',  ylab="P(p | r,n,M)", main='post_chris')
+#mean
+E_chris <- delta_p*sum(p*post_chris_norm)
+#mode
+mode_chris <- p[which.max(post_chris_norm)]
+abline(v=mode_chris, lty=2)
+#confidence
+E2_chris <- delta_p*sum(p^2*post_chris_norm)
+s_chris <- sqrt(E2_chris - E_chris^2)
+abline(v=mode_chris - 2*s_chris, lty=1)
+abline(v=mode_chris + 2*s_chris, lty=1)
+```
+
+EX 3
+```{r}
+n_sample <- 2000
+delta_p <- 1/n_sample
+p <- seq(from=1/(2*n_sample), by=delta_p , length.out=n_sample)
+
+#priors
+prior_unif <- dunif(p)
+plot(p, prior_unif, type='l', main='prior_unif')
+
+prior_beta <- dbeta(p, 10, 10)
+plot(p, prior_beta, type='l', main='prior_beta')
+
+#likelihood
+n <- 30
+r <- 15
+
+like <- dbinom(r, n, p)
+plot(p, like, type='l', main='likelihood')
+
+#posteriror unif
+post_unif <- like /( delta_p*sum(like))
+plot(p, post_unif, type="l", lwd=1.5, col='navy',  ylab="P(p | r,n,M)", main='post_unif')
+
+E_unif <- delta_p*sum(p*post_unif)
+
+mode_unif <- p[which.max(post_unif)]
+abline(v=mode_unif, lty=1)
+
+E2_unif <- delta_p*sum(p^2*post_unif)
+s_unif <- sqrt(E2_unif - E_unif^2)
+abline(v=mode_unif - 2*s_unif, lty=2)
+abline(v=mode_unif + 2*s_unif, lty=2)
+
+#posterior beta
+post_beta <- dbeta(p, 10+r, 10+n-r)
+plot(p, post_beta, type="l", lwd=1.5, col='navy',  ylab="P(p | r,n,M)", main='post_beta')
+
+E_beta <- delta_p*sum(p*post_beta)
+
+mode_beta <- p[which.max(post_beta)]
+abline(v=mode_beta, lty=1)
+
+E2_beta <- delta_p*sum(p^2*post_beta)
+s_beta <- sqrt(E2_beta - E_beta^2)
+abline(v=mode_beta - 2*s_beta, lty=2)
+abline(v=mode_beta + 2*s_beta, lty=2)
+```
+
+sequential analysis
+```{r}
+result <- c(0, 0, 0, 0, 0, 1, 0, 0, 1, 1, 0, 0, 1, 1, 1, 0, 1, 0, 1, 0, 1, 1, 0, 1, 0, 1, 0, 1, 1, 1)
+
+n_sample <- 2000
+delta_p <- 1/n_sample
+p <- seq(from=1/(2*n_sample), by=delta_p , length.out=n_sample)
+
+prior_unif <- dunif(p)
+prior_beta <- dbeta(p, 10, 10)
+
+n <- 1
+r <- 0
+
+#unif
+for (i in result) {
+    if (i==1) {r <- r+1}
+    like <- dbinom(r, n, p)
+    post <- like*prior_unif
+    post_norm <- post /( delta_p*sum(post ))
+    prior_unif <- post_norm
+    n <- n+1
+}
+
+plot(p, post_norm, type="l", lwd=1.5, col='navy',  ylab="P(p | r,n,M)", main='post_norm')
+E_unif <- delta_p*sum(p*post_norm)
+
+mode_unif <- p[which.max(post_norm)]
+abline(v=mode_unif, lty=1)
+
+n <- 1
+r <- 0
+
+#beta
+for (i in result) {
+    if (i==1) {r <- r+1}
+    like <- dbinom(r, n, p)
+    post <- like*prior_beta
+    post_beta <- post /( delta_p*sum(post ))
+    prior_beta <- post_beta
+    n <- n+1
+}
+
+plot(p, post_beta, type="l", lwd=1.5, col='navy',  ylab="P(p | r,n,M)", main='post_beta')
+E_beta <- delta_p*sum(p*post_beta)
+
+mode_beta <- p[which.max(post_beta)]
+abline(v=mode_beta, lty=1)
+```
+

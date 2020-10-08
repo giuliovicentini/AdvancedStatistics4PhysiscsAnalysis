@@ -1,0 +1,218 @@
+---
+title: "Exercise3"
+author: "Giulio Vicentini"
+date: "16/5/2020"
+output: html_document
+---
+
+EX 1
+determine the costant c
+```{r}
+f <- function(t) {
+    val <- ifelse(t>1 & t<2, (t-1)*(2-t), 0)
+    return(val)
+}
+
+c <- 1/integrate(f, 1, 2)$value
+```
+
+write the set of four R functions and plot the pdf and cdf
+```{r}
+dtolc <- function(t) {
+    d <- ifelse(t>1 & t<2, c*(t-1)*(2-t), 0)
+    return(d)
+}
+
+ptolc <- function(t) {
+    p <- ifelse(t<=1, 0, ifelse(t>1 & t<2, -c*(t-1)^2*(2*t-5)/6, 1 )) 
+    return(p)
+}
+
+rtolc <- function(n) {
+    M <- 1.5
+    u1 <- runif(n, 0, 1) 
+    u2 <- runif(n, 0, 1)
+    y <- ifelse(u2 * M < dtolc(u1+1), u1+1, NA)
+    y_clean <- y[!is.na(y)]
+    return(y_clean)
+}
+
+qtolc <- function(p) {
+  q <- NULL
+  j <- 1
+  for (i in p) {
+    f <- function(t) {ptolc(t)-i}
+    root <- uniroot(f, lower=1, upper=2)$root
+    q[j] <- root
+    j <- j+1
+  }
+  return(q)
+}
+
+x <- seq(0, 3, 0.01)
+plot(x, dtolc(x), type='l', main='PDF')
+plot(x, ptolc(x), type='l', main='CDF')
+
+sim <- rtolc(10000)
+x <- seq(1, 2, 0.1)
+hist(sim, col='gold')
+curve(dtolc(x)*2000/3, add=TRUE)
+```
+
+evaluate the probability
+```{r}
+P_gt75 <- integrate(dtolc, 1.25, 2)$value
+
+P_912 <- integrate(dtolc, 1.5, 2)$value
+```
+one point has negligible measure, hence P_90=P_120=0
+
+
+EX 2
+write the set of four R functions and plot the pdf and cdf
+```{r}
+dtires <- function(x) {
+    d <- ifelse(x>= 1 & x<=2, 2/x^2, 0)
+    return(d)
+}
+
+ptires <- function(x) {
+  p <- ifelse(x<=1, 0, ifelse(x>1 & x<2, 2-2/x, 1))
+  return(p)
+}
+
+rtires <- function(n) {
+    u <- runif(n) 
+    r <- -2/(u-2)
+    return(r)
+}
+
+qtires <- function(p) {
+  q <- -2/(p-2)
+  return(q)
+}
+
+x <- seq(0, 3, 0.01)
+plot(x, dtires(x), type='l', main='PDF')
+plot(x, ptires(x), type='l', main='CDF')
+```
+
+evaluate the probability
+```{r}
+P_lt15 <- integrate(dtires, 1, 1.5)$value
+```
+
+sample 3000 random variables from the distribution and determine the mean value and the variance
+```{r}
+sim <- rtires(3000)
+hist(sim, col='gold')
+x <- seq(1, 2, 0.1)
+curve(dtires(x)*500/2, add=TRUE)
+
+E_X <- mean(sim)
+E_X2 <- mean(sim^2)
+VAR <- E_X2 - E_X^2
+
+e_x <- integrate(function(x){x*dtires(x)}, 1, 2)$value
+e_x2 <- integrate(function(x){x*x*dtires(x)}, 1, 2)$value
+var <- e_x2 - e_x^2
+```
+
+
+EX 3
+show, with a plot, that Markov’s inequality is is an upper bound to the following
+distributions:
+```{r}
+#exponential distribution
+k <- seq(0, 10, 0.01)
+lambda <- 1
+plot(k, 1-pexp(k, lambda), type='l', col='blue', main='Marokov’s inequality - exponential')
+lim <- function(x) {1/(lambda*x)}
+curve(lim, add=TRUE)
+
+text(2.4, 0.52, 'E[X]/k')
+text(1, 0.16, 'G(k)')
+
+#uniform distribution
+k <- seq(2, 6, 0.01)
+a <- 3
+b <- 5
+plot(k, 1-punif(k, a, b), type='l', col='blue', main='Marokov’s inequality - uniform')
+lim <- function(x) {(a+b)/(2*x)}
+curve(lim, add=TRUE)
+
+text(4.7, 0.9, 'E[X]/k')
+text(4, 0.27, 'G(k)')
+
+#binomial distribution
+k <- seq(0, 10, 1)
+n <- 1
+p <- 1/2
+plot(k, 1-pbinom(k, n, p), type='b', col='blue', main='Marokov’s inequality - binomial')
+lim <- function(x) {n*p/x}
+curve(lim, add=TRUE)
+
+text(4, 0.15, 'E[X]/k')
+text(1, 0.2, 'G(k)')
+
+#poisson distribution
+x <- seq(0, 10, 1)
+lambda <- 1/2
+plot(x, 1-ppois(x, lambda), type='b', col='blue', main='Marokov’s inequality - poisson')
+k <- 2
+lim <- function(x) {lambda/x}
+curve(lim, add=TRUE)
+
+text(2.4, 0.26, 'E[X]/k')
+text(1, 0.03, 'G(k)')
+```
+
+EX 4
+show, with a plot, that Chebyshev’s inequality is is an upper bound to the following
+distributions:
+```{r}
+#normal distribution
+k <- seq (0, 5, 0.01)
+mu <- 3
+sigma <- 5
+int <- function(x) {pnorm(mu+x*sigma, mu, sigma) - pnorm(mu-x*sigma, mu, sigma)}
+plot(k, int(k), type='l', col='blue', main='Chebyshev’s inequality - normal')
+lim <- function(x) {1-1/x^2}
+curve(lim, add=TRUE)
+text(2, 0.4, '1-1/k^2')
+
+#exponential distribution
+k <- seq(0, 5, 0.01)
+lambda <- 1
+mu <- 1/lambda
+sigma <- 1/lambda
+int <- function(x) {pexp(mu+x*sigma, lambda) - pexp(mu-x*sigma, lambda)}
+plot(k, int(k), type='l', col='blue', main='Chebyshev’s inequality - exponential')
+lim <- function(x) {1-1/x^2}
+curve(lim, add=TRUE)
+text(2, 0.4, '1-1/k^2')
+
+#uniform distribution
+k <- seq(0, 5, 0.01)
+a <- 1-sqrt(2)
+b <- 1+sqrt(2)
+mu <- (a+b)/2
+sigma <- (b-a)/sqrt(12)
+int <- function(x) {punif(mu+x*sigma, a, b) - punif(mu-x*sigma, a, b)}
+plot(k, int(k), type='l', col='blue', main='Chebyshev’s inequality - uniform')
+lim <- function(x) {1-1/x^2}
+curve(lim, add=TRUE)
+text(2, 0.4, '1-1/k^2')
+
+#poisson distribution
+k <- seq(0, 5, 1)
+lambda <- 1/3
+mu <- lambda
+sigma <- sqrt(lambda)
+int <- function(x) {ppois(mu+x*sigma, lambda) - ppois(mu-x*sigma, lambda)}
+plot(k, int(k), type='b', col='blue', main='Chebyshev’s inequality - poisson')
+lim <- function(x) {1-1/x^2}
+curve(lim, add=TRUE)
+text(2, 0.4, '1-1/k^2')
+```
+

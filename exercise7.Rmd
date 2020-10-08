@@ -1,0 +1,241 @@
+---
+title: "exercise7"
+author: "Giulio Vicentini"
+date: "28/5/2020"
+output: html_document
+---
+
+EX 1
+```{r}
+obs <- c(26.8, 31.9, 28.0, 26.3, 28.5, 18.6, 28.3,
+         27.2, 22.3, 28.5, 20.9, 25.0, 16.3, 27.5, 31.5)
+
+n <- 15
+mu <- mean(obs)
+sigma <- 4
+
+m_norm_norm <- function(m, s, n, mu, sigma) {
+    (1/s^2)*m/(n/sigma^2+1/s^2) + (n/sigma^2)*mu/(n/sigma^2+1/s^2)
+}
+
+s_norm_norm <- function(s, n, sigma) {
+    sqrt((sigma^2+n*s^2)/(sigma^2*s^2))
+}
+
+likelihood <- function(x){
+  like <- 1
+for(i in obs){
+  like <- like*dnorm(x, i, 4)
+  }
+  return(like)
+}
+  
+#norm(20, 5)
+m1 <- 20
+s1 <- 5
+
+m11 <- m_norm_norm(m1, s1, n, mu, sigma)
+s11 <- s_norm_norm(s1, n, sigma)
+
+a11 <- qnorm(0.025, m11, s11)
+b11 <- qnorm(0.975, m11, s11)
+
+x <- seq(18, 35, 0.01)
+plot(x, dnorm(x, m11, s11), type='l', col='blue', main='posterior 1')
+abline(v=m11, lty=1)
+abline(v=a11, lty=2)
+abline(v=b11, lty=2)
+
+#norm(30, 4)
+m2 <- 30
+s2 <- 4
+
+m21 <- m_norm_norm(m2, s2, n, mu, sigma)
+s21 <- s_norm_norm(s2, n, sigma)
+
+a21 <- qnorm(0.025, m21, s21)
+b21 <- qnorm(0.975, m21, s21)
+
+x <- seq(20, 35, 0.01)
+plot(x, dnorm(x, m21, s21), type='l', col='blue', main='posterior 2')
+abline(v=m21, lty=1)
+abline(v=a21, lty=2)
+abline(v=b21, lty=2)
+
+#prior - like - post
+
+
+x <- seq(10, 35, 0.1)
+plot(x, dnorm(x, m1, s1), type='l', col='red', ylim=c(0, 0.4), main='comparison 1')
+curve(likelihood(x), add=TRUE, col='green', lty=2)
+curve(dnorm(x, m11, s11), add=TRUE, col='blue')
+legend(30, 0.35, c('prior', 'like', 'post'), fill=c('red', 'green', 'blue'))
+
+
+x <- seq(15, 40, 0.1)
+plot(x, dnorm(x, m2, s2), type='l', col='red', ylim=c(0, 0.4), main='camparison 2')
+curve(likelihood(x), add=TRUE, col='green', lty=2)
+curve(dnorm(x, m21, s21), add=TRUE, col='blue')
+legend(35, 0.35, c('prior', 'like', 'post'), fill=c('red', 'green', 'blue'))
+
+#confdence level
+cf1 <- b11-a11
+cf2 <- b21-a21
+```
+
+EX 2
+```{r}
+#like
+obs <- c(4.09, 4.79, 4.68, 4.49, 1.87, 5.85, 2.62, 5.09, 
+         5.58, 2.40, 8.68, 6.27, 4.07, 6.30, 4.78, 4.47)
+
+n <- 16
+mu <- mean(obs)
+sigma <- 2
+
+#like
+likelihood <- function(x){
+  like <- 1
+for(i in obs){
+  like <- like*dnorm(x, i, 4)
+  }
+  return(like)
+}
+
+#prior
+prior <- function(x) {
+  ifelse(x>0 & x<=3, x, ifelse(x>3 & x<=5, 3, ifelse(x>5 & x<=8, 8-x, 0)))
+}
+
+n_sample <- 20000
+delta_p <- 10/n_sample
+p <- seq(from=1/(2*n_sample), by=delta_p , length.out=n_sample)
+#posterior
+post <- likelihood(p)*prior(p)
+post_norm <- post /( delta_p*sum(post))
+plot(p, post_norm, type="l", lwd=1.5, col='navy', main='posterior')
+#mode
+mode <- p[which.max(post_norm)]
+#mean
+E <- delta_p*sum(p*post_norm)
+abline(v=E, lty=2)
+#confidence
+E2 <- delta_p*sum(p^2*post_norm)
+s <- sqrt(E2 - E^2)
+abline(v=E - 2*s, lty=1)
+abline(v=E + 2*s, lty=1)
+
+#try plot
+x <- seq(0, 10, 0.01)
+plot(p, post_norm, type='l', col='blue', ylim=c(0, max(prior(x))), main='comparison')
+curve(likelihood(x), add=TRUE, col='green', lty=2)
+curve(prior(x), add=TRUE, col='red')
+legend(8, 3, c('prior', 'like', 'post'), fill=c('red', 'green', 'blue'))
+```
+
+EX 3a
+```{r}
+#frequentist estimator
+y <- 11
+n <- 116
+pf <- y/n
+
+#bayesian estimator
+a <- 1
+b <- 10
+
+a1 <- a+y
+b1 <- b+n-y
+
+pb1 <- a1/(a1+b1)
+
+#posterior
+x <- seq(0, 0.5, 0.001)
+plot(x, dbeta(x, a1, b1), type='l', col='blue', main='posterior')
+mu1 <- pb1
+var1 <- a1*b1/((a1+b1)^2*(a1+b1+1))
+s1 <- sqrt(var1)
+x1 <- qbeta(0.025, a1, b1)
+x2 <- qbeta(0.975, a1, b1)
+abline(v=mu1, lty=2)
+abline(v=x1)
+abline(v=x2)
+
+#hypotesis test - frequentist 
+p0 <- 0.1
+
+sim <- rbinom(10000, n, p0)
+library(tibble)
+X <- tibble(sim)
+library(dplyr)
+Y <- count(X, X$sim)
+Y$n <- Y$n/10000
+barplot(Y$n, names.arg=Y$'X$sim', col='gold', ylim=c(0, 0.13), main='simulation')
+abline(h=p0, lty=2, col='red')
+# we observe y = 11, which lies inside the acceptance region -> we don't reject the null hypotesis
+
+#hypotesis test - bayesian1
+conf1 <- c(x1, x2) #p0 lies inside the interval, we do not reject the null hypothesis
+```
+
+EX 3b
+```{r}
+#frequentist estimator
+y <- 9
+n <- 165
+pf <- y/n
+
+#bayesian estimator
+a <- 1
+b <- 10
+
+a2 <- a+y
+b2 <- b+n-y
+pb2 <- a2/(a2+b2)
+
+a3 <- a2+y
+b3 <- a2+n-y
+pb3 <- a3/(a3+b3)
+
+#posterior beta
+x <- seq(0, 0.5, 0.001)
+plot(x, dbeta(x, a2, b2), type='l', col='blue', main='posterior 1')
+mu2 <- pb2
+var2 <- a2*b2/((a2+b2)^2*(a2+b2+1))
+s2 <- sqrt(var2)
+x21 <- qbeta(0.025, a2, b2)
+x22 <- qbeta(0.975, a2, b2)
+abline(v=mu2, lty=2)
+abline(v=x21)
+abline(v=x22)
+
+plot(x, dbeta(x, a3, b3), type='l', col='blue', main='posterior 2')
+mu3 <- pb3
+var3 <- a3*b3/((a3+b3)^2*(a3+b3+1))
+s3 <- sqrt(var3)
+x31 <- qbeta(0.025, a3, b3)
+x32 <- qbeta(0.975, a3, b3)
+abline(v=mu3, lty=2)
+abline(v=x31)
+abline(v=x32)
+
+#hypotesis test - frequentist 
+p0 <- 0.1
+
+sim <- rbinom(10000, n, p0)
+library(tibble)
+X <- tibble(sim)
+library(dplyr)
+Y <- count(X, X$sim)
+Y$n <- Y$n/10000
+barplot(Y$n, names.arg=Y$'X$sim', col='gold', ylim=c(0, 0.13), main='simulation')
+abline(h=p0, lty=2, col='red')
+# we observe y = 9, which dosen't lie inside the acceptance region -> we reject the null hypotesis
+
+#hypotesis test - bayesian2
+conf2 <- c(x21, x22) #p0 doesn't lie inside the interval, we  reject the null hypothesis
+
+#hypotesis test - bayesian3
+conf3 <- c(x31, x32) #p0 lies inside the interval, we do not reject the null hypothesis
+```
+

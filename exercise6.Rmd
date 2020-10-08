@@ -1,0 +1,309 @@
+---
+title: "exercise6"
+author: "Giulio Vicentini"
+date: "27/5/2020"
+output: html_document
+---
+EX 1
+```{r}
+n_sample <- 2000
+delta_mu <- 10/n_sample
+mu <- seq(from=1/(2*n_sample), by=delta_mu , length.out=n_sample)
+
+n <- 5
+
+#unif
+prior_unif <- dunif(mu)
+prior_unif <- 0*mu+1
+plot(mu, prior_unif, type="l", lwd=1.5, col='navy',  ylab="P(p)", main='prior_unif')
+
+#post
+a_unif <- 13
+post_unif <- dgamma(mu, a_unif, n)
+plot(mu, post_unif, type="l", lwd=1.5, col='navy',  ylab="P(p | a,n,M)", main='post_unif')
+
+#mean
+E_unif <- delta_mu*sum(mu*post_unif)
+e_unif <- a_unif/n
+#mode
+mode_unif <- mu[which.max(post_unif)]
+
+#var
+E2_unif <- delta_mu*sum(mu^2*post_unif)
+V_unif <- E2_unif - E_unif^2
+v_unif <- a_unif/n^2
+#sigma
+S_unif <- sqrt(V_unif)
+s_unif <- sqrt(v_unif)
+
+#median
+m_unif <- qgamma(1/2, a_unif, n)
+
+#CL
+x0_unif <- qgamma(0.025, a_unif, n)
+x1_unif <- qgamma(0.975, a_unif, n)
+
+#gauss approx
+lines(mu, dnorm(mu, E_unif, S_unif), lwd=1.5)
+abline(v=mode_unif, lty=1, col='blue')
+abline(v=E_unif)
+abline(v=x0_unif, lty=2, col='blue')
+abline(v=x1_unif, lty=2, col='blue')
+abline(v=E_unif+2*S_unif, lty=2)
+abline(v=E_unif-2*S_unif, lty=2)
+legend("topright", c("gauss","post"), fill = c("black", "blue"), cex=0.95)
+
+#jefferis
+prior_jef <- mu^(-1/2)
+plot(mu, prior_jef, type="l", lwd=1.5, col='navy',  ylab="P(p)", main='prior_jef')
+
+a_jef <- 25/2
+post_jef <- dgamma(mu, a_jef, n)
+plot(mu, post_jef, type="l", lwd=1.5, col='navy',  ylab="P(p | a,n,M)", main='post_jef')
+
+E_jef <- delta_mu*sum(mu*post_jef)
+e_jef <- a_jef/n
+mode_jef <- mu[which.max(post_jef)]
+
+E2_jef <- delta_mu*sum(mu^2*post_jef)
+V_jef <- E2_jef - E_jef^2
+v_jef <- a_jef/n^2
+S_jef <- sqrt(V_jef)
+s_jef <- sqrt(v_jef)
+
+m_jef <- qgamma(1/2, a_jef, n)
+
+x0_jef <- qgamma(0.025, a_jef, n)
+x1_jef <- qgamma(0.975, a_jef, n)
+
+lines(mu, dnorm(mu, E_jef, S_jef), lwd=1.5)
+abline(v=mode_jef, lty=1, col='blue')
+abline(v=E_jef)
+abline(v=x0_jef, lty=2, col='blue')
+abline(v=x1_jef, lty=2, col='blue')
+abline(v=E_jef+2*S_jef, lty=2)
+abline(v=E_jef-2*S_jef, lty=2)
+legend("topright", c("gauss","post"), fill = c("black", "blue"), cex=0.95)
+
+```
+
+EX 2
+```{r}
+log_post <- function(a, b, data) {
+  logL <- 0.0
+  for (x in data) {
+    logL <- logL - log(b*(1+ ((x-a)/b)^2))
+  }
+  return(logL)
+}
+
+# - Sampling grid for computing posterior
+alim <- c(-2, 2)
+blim <- c(0, 2)
+Nsamp <- 100
+uniGrid <- seq(from=1/(2*Nsamp), to=1-1/(2*Nsamp), by=1/Nsamp)
+delta_a <- diff(alim )/ Nsamp
+delta_b <- diff(blim )/ Nsamp
+a <- alim[1] + diff(alim )* uniGrid
+b <- blim[1] + diff(blim )* uniGrid
+
+#simulate the data
+data <- rnorm(200, 1, 2)
+
+#n.str <- readline("Enter data set dimension: ")
+#n.plot <- as.numeric(unlist(strsplit(n.str , ",")))
+n_plot <- c(1, 5, 10, 50, 100, 200)
+for (n in n_plot) {
+dx <- data[1:n]
+
+# Compute log unnormalized posterior , z = ln Pˆ*(a,b|D), on a regular grid
+z <- matrix(data=NA , nrow=length(a), ncol=length(b))
+for(j in 1:length(a)) {
+  for(k in 1:length(b)) {
+    z[j,k] <- log_post(a[j], b[k], dx)
+  }
+}
+z <- z - max(z) # set maximum to zero
+
+# Plot unnormalized 2D posterior as contours.
+contour(a, b, exp(z),
+    nlevels = 5,
+    labcex = 0.5,
+    lwd = 2,
+    xlab="A",
+    ylab="B", main=paste("posterior ", n))
+abline(v=1, h=1, col="grey")
+
+# Compute normalized marginalized posteriors , P(a|D) and P(b|D)
+# by summing over other parameter. Normalize by gridding.
+p_a_D <- apply(exp(z), 1, sum)
+p_a_D <- p_a_D/( delta_a*sum(p_a_D))
+p_b_D <- apply(exp(z), 2, sum)
+p_b_D <- p_b_D/( delta_b*sum(p_b_D))
+
+# Compute normalized conditional posteriors , P(a|b,D) and P(b|a,D)
+# using true values of conditioned parameters. Vectorize(func , par)
+# makes a vectorized function out of func in the parameter par.
+A_true <- 1
+B_true <- 1
+
+p_a_bD <- exp( Vectorize (log_post , "a")(a, B_true, dx))
+p_a_bD <- p_a_bD/( delta_a*sum(p_a_bD))
+p_b_aD <- exp( Vectorize (log_post , "b")(A_true, b, dx))
+p_b_aD <- p_b_aD/( delta_b*sum(p_b_aD))
+
+# Plot the 1D marginalized posteriors
+plot(b, p_b_D, xlab="B", yaxs="i",
+ylim=1.05*c(0,max(p_b_D, p_b_aD)), ylab="P(B | D) and P(B | A,D)",
+type="l", lwd=2, main=paste("posterior ", n))
+lines(b, p_b_aD , lwd=2, lty=2)
+abline(v=B_true , col="grey")
+
+plot(a, p_a_D, xlab="A", yaxs="i",
+ylim=1.05*c(0,max(p_a_D, p_a_bD)), ylab="P(A | D) and P(A | B,D)",
+type="l", lwd=2, main=paste("posterior ", n))
+lines(a, p_a_bD , lwd=2, lty=2)
+abline(v=A_true , col="grey")
+}
+```
+
+
+EX 3
+a)
+```{r}
+# - Generative model
+signal <- function(x, a, b, x0, w, t) {
+  sig <- t*(a*exp(-(x-x0)^2/(2*w^2))+b)
+  return(sig)
+}
+
+# Define model parameters
+x0 <- 0 # Signal peak
+#w <- 1 # Signal width
+A_true <- 2 # Signal amplitude
+B_true <- 1 # Background amplitude
+Delta_t <- 5 # Exposure time
+samp_range <- 1
+
+# Sampling grid for computing posterior
+alim <- c(0.0, 4.0)
+blim <- c(0.5, 1.5)
+Nsamp <- 100
+uniGrid <- seq(from=1/(2*Nsamp), to=1-1/(2*Nsamp), by=1/Nsamp) 
+delta_a <- diff(alim)/Nsamp 
+delta_b <- diff(blim)/Nsamp
+a <- alim[1] + diff(alim)*uniGrid 
+b <- blim[1] + diff(blim)*uniGrid
+
+# Log posterior
+log_post <- function(d, x, a, b, x0, w, t) {
+    if(a<0 || b <0) {return(-Inf )} # the effect of the prior
+    sum(dpois(d, lambda=signal(x, a, b, x0, w, t), log=TRUE))
+}
+
+z <- matrix(data=NA, nrow=length(a), ncol=length(b)) 
+
+ww <- c(0.1, 0.25, 1, 2, 3)
+for (w in ww) {
+
+# - Generate the observed data
+set.seed(205)
+xdat <- seq(from=-7*samp_range, to=7*samp_range, by=0.5*w)
+s_true <- signal(xdat , A_true , B_true , x0, w, Delta_t)
+ddat <- rpois(length(s_true), s_true)
+xplot <- seq(from=min(xdat), to=max(xdat), by=0.05*w)
+splot <- signal(xplot , A_true , B_true , x0, w, Delta_t)
+plot(xplot , splot ,xlab="x", ylab="Signal+Background counts")
+par(new=TRUE)
+xdat_off <- xdat -0.25
+plot(xdat_off, ddat , type='s',col='firebrick3',
+lwd=2,xlim=range(xplot), ylim=range(c(splot , ddat )))
+
+
+# Compute log unnormalized posterior, z = ln Pˆ*(a,b|D), on a regular grid
+#z <- matrix(data=NA, nrow=length(a), ncol=length(b)) 
+for(j in 1:length(a)) {
+    for(k in 1:length(b)) {
+      z[j,k] <- log_post(ddat, xdat, a[j], b[k], x0, w, Delta_t)
+    } 
+  }
+z <- z - max(z) # set maximum to zero
+
+# Plot unnormalized 2D posterior as contours.
+contour(a, b, exp(z),
+    nlevels = 5,
+    labcex = 0.5,
+    lwd = 2,
+    xlab="A",
+    ylab="B", main=paste('posterior', w))
+abline(v=2, h=1, col="grey")
+}
+```
+b)
+```{r}
+# - Generative model
+signal <- function(x, a, b, x0, w, t) {
+  sig <- t*(a*exp(-(x-x0)^2/(2*w^2))+b)
+  return(sig)
+}
+
+# Define model parameters
+x0 <- 0 # Signal peak
+w <- 1 # Signal width
+#A_true <- 2 # Signal amplitude
+B_true <- 1 # Background amplitude
+Delta_t <- 5 # Exposure time
+
+A <- c(1, 1.5, 2, 2.5,  3)
+for (A_true in A) {
+
+# - Generate the observed data
+set.seed(205)
+xdat <- seq(from=-7*w, to=7*w, by=0.5*w)
+s_true <- signal(xdat , A_true , B_true , x0, w, Delta_t)
+ddat <- rpois(length(s_true), s_true)
+xplot <- seq(from=min(xdat), to=max(xdat), by=0.05*w)
+splot <- signal(xplot , A_true , B_true , x0, w, Delta_t)
+plot(xplot , splot ,xlab="x", ylab="Signal+Background counts")
+par(new=TRUE)
+xdat_off <- xdat -0.25
+plot(xdat_off, ddat , type='s',col='firebrick3',
+lwd=2,xlim=range(xplot), ylim=range(c(splot , ddat )))
+
+# Log posterior
+log_post <- function(d, x, a, b, x0, w, t) {
+    if(a<0 || b <0) {return(-Inf )} # the effect of the prior
+    sum(dpois(d, lambda=signal(x, a, b, x0, w, t), log=TRUE))
+}
+
+# Sampling grid for computing posterior
+alim <- c(0.0, 4.0)
+blim <- c(0.5, 1.5)
+Nsamp <- 100
+uniGrid <- seq(from=1/(2*Nsamp), to=1-1/(2*Nsamp), by=1/Nsamp) 
+delta_a <- diff(alim)/Nsamp 
+delta_b <- diff(blim)/Nsamp
+a <- alim[1] + diff(alim)*uniGrid 
+b <- blim[1] + diff(blim)*uniGrid
+
+# Compute log unnormalized posterior, z = ln Pˆ*(a,b|D), on a regular grid
+z <- matrix(data=NA, nrow=length(a), ncol=length(b)) 
+for(j in 1:length(a)) {
+    for(k in 1:length(b)) {
+      z[j,k] <- log_post(ddat, xdat, a[j], b[k], x0, w, Delta_t)
+    } 
+  }
+z <- z - max(z) # set maximum to zero
+
+# Plot unnormalized 2D posterior as contours.
+contour(a, b, exp(z),
+    nlevels = 5,
+    labcex = 0.5,
+    lwd = 2,
+    xlab="A",
+    ylab="B" , main=paste('posterior', A_true))
+abline(v=2, h=1, col="grey")
+}
+```
+
+

@@ -1,0 +1,116 @@
+---
+title: "Exercise4"
+author: "Giulio Vicentini"
+date: "19/5/2020"
+output: html_document
+---
+
+EX 1
+plot the function
+```{r}
+dtri <- function(x, a, b, c){
+     y <- ifelse(x>=a & x<c, 2*(x-a)/((b-a)*(c-a)), 
+          ifelse(x>=c & x<b, 2*(b-x)/((b-a)*(b-c)), 0))
+     return(y)
+}
+
+x <- seq(-1, 11, 0.1)
+plot(x, dtri(x, 0, 10, 5))
+```
+
+algorithm to generate random number from the distribution
+```{r}
+  rtri <- function(u, a, b, c){
+   x <- ifelse(u<=(c-a)/(b-a), a+sqrt(u*(b-a)*(c-a)), b-sqrt(((1-u)*(b-a)*(b-c))))
+   return(x)
+}
+```
+
+generate 10000 random numner from the distrubution
+```{r}
+n <- 10000
+u <- runif(n, 0, 1)
+X <- rtri(u, 0, 10, 5)
+hist(X, col='gold')
+curve(5000*dtri(x, 0, 10, 5), add=TRUE)
+```
+
+EX 2
+```{r}
+p <- c(0.05, 0.19, 0.14, 0.17, 0.02, 0.11, 0.06, 0.05, 0.04, 0.17)
+x <- 0:9
+
+P <- NULL
+for (i in 0:10) {
+     P[i] <- sum(p[0:i])
+}
+
+plot(x, p, type='s')
+barplot(p)
+plot(x, P, type='s')
+barplot(P)
+```
+
+```{r}
+sampleDist = function(n) { 
+    sample(x, n, replace = T, prob = p) 
+}
+
+y <- sampleDist(1000) 
+hist(y, col='gold') #non mi plotta la prima barra
+
+library(tibble)
+X <- tibble(y)
+library(dplyr)
+Y <- count(X, X$y)
+barplot(Y$n, names = 0:9)
+```
+
+EX 3
+```{r}
+f <- function(x, R) {2/(pi*R^2)*sqrt(R^2-x^2)}
+R <- 1
+x <- seq(-2, 2, 0.1)
+plot(x, f(x, R))
+
+M <- 2/(pi*R)
+n <- 10000
+u1 <- runif(n, -R, R)
+u2 <- runif(n, 0, 1)
+y <- ifelse(u2 * M < f(u1, R), u1, NA)
+y_clean <- y[!is.na(y)]
+hist(y_clean, col='gold')
+curve(500*pi*R*f(x, R), add=TRUE)
+```
+
+EX 4
+```{r}
+n <- 1000 #nuber of observations
+s <- 2 #must be natural for erlang
+r <- 1 
+sim <- rgamma(n, s, r)
+hist(sim)
+```
+
+EX 5
+middle-squared method for 10 digits
+```{r}
+options(digits=20)
+
+midSquare <- function(seed, len) {
+    randvector <- NULL
+    for(i in 1:len) {
+        value <- seed^2
+        ch <- substr(as.character(value), 6, 15)
+        seed <- as.numeric(ch)
+        randvector[i] <- seed
+  }
+  return(randvector)
+}
+
+midSquare(1234567890, 10)
+midSquare(5772156649, 10)
+
+```
+
+

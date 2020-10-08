@@ -1,0 +1,118 @@
+---
+title: "Exercise2_1"
+author: "Giulio Vicentini"
+date: "7/5/2020"
+output: html_document
+---
+
+EX 1
+```{r}
+x <- c(15.58, 15.9, 16, 16.1, 16.2)
+p1 <- c(0.15, 0.21, 0.35, 0.15, 0.14)
+p2 <- c(0.14, 0.05, 0.64, 0.08, 0.09)
+
+E1 <- sum(x*p1)
+E2 <- sum(x*p2)
+
+var1 <- sum(x^2*p1)-E1^2
+var2 <- sum(x^2*p2)-E2^2
+```
+
+
+EX 2
+plot histogram for 50 people
+```{r}
+lambda <- 1/30
+n <- 50
+oss <- rexp(n, lambda)
+hist(oss, col='blue', xlab='x', ylab='dexp(y|lambda)', main='exponential distr. lambda=1/30')
+```
+
+probability that a person will wait for less than 10 minutes
+```{r}
+P_10 <- pexp(10, lambda)
+```
+
+average waiting time
+```{r}
+E_th <- 1/lambda
+E_sper <- mean(oss)
+```
+
+probability for waiting more than one hour
+```{r}
+P_60 <- 1-pexp(60, lambda)
+```
+
+
+EX 3
+assume lambda=1/3 and plot pdf and cdf
+```{r}
+lambda <- 1/3
+x <- 0:10
+
+dhist <- dpois (x, lambda)
+phist <- ppois (x, lambda)
+
+barplot(dhist, col='blue', ylim=c(0,1), names=0:10, xlab='x', ylab='dpois(x|lambda)', main='poisson distr. lambda=1/3')
+barplot(phist, col='blue', ylim=c(0,1.2), names=0:10, xlab='x', ylab='ppois(x|lambda)', main='exponential cdf. lambda=1/3')
+```
+
+probabilty of at least one error
+```{r}
+P_1 <- 1 - ppois(0, lambda)
+```
+
+
+EX 4
+follow the geometric distribution
+```{r}
+p <- 4/52
+dgeom(10, p)
+```
+
+
+EX 5
+load the data
+```{r}
+majors <- read.csv2("/home/giulio/Documenti/dataset/sindaciincarica.csv", skip=2)
+```
+
+plot sex amongst the majors
+```{r}
+library(dplyr)
+
+sex <- count(majors, majors$sesso)
+barplot(sex$n, col = c('mistyrose', 'lightblue'), ylim=c(0,7000), names=c('f', 'm'))
+```
+
+plot the number of towns grouped per province and per region
+```{r}
+prov <- count(majors, majors$codice_provincia)
+barplot(prov$n, col = 'green', ylim=c(0,300), names=prov$`majors$codice_provincia`)
+
+reg <- count(majors, majors$codice_regione)
+barplot(reg$n, col = 'green', ylim=c(0,1600), names=reg$`majors$codice_regione`)
+```
+
+plot a distributions of the age of the mayors
+```{r}
+years <- count(majors, substr(majors$data_nascita, 7, 10))
+barplot(years$n, col = 'green', ylim=c(0,300), names=years$`substr(majors$data_nascita, 7, 10)`)
+```
+
+plot a distribution of the time (in days) the mayor is in charge
+```{r}
+library(lubridate)
+
+date <- count(majors, majors$data_elezione)
+date_order <- date[order(as.Date(date$`majors$data_elezione`, '%d/%m/%Y')), ]
+barplot(date_order$n, col = 'green', ylim=c(0,4000), names=today()-as.Date(date_order$`majors$data_elezione`, '%d/%m/%Y'), xlab='days', ylab='#majors')
+```
+
+how many majors are going to complete their mandate in 2020 and 2021
+```{r}
+count(majors, substr(majors$data_elezione, 7, 10)==2015)
+count(majors, substr(majors$data_elezione, 7, 10)==2016)
+```
+

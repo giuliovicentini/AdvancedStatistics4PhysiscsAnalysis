@@ -1,0 +1,49 @@
+---
+title: "Exercise1_2"
+author: "Giulio Vicentini"
+date: "4/5/2020"
+output: html_document
+---
+
+Import the data
+```{r}
+library('tibble')
+library('DAAG')
+
+tibble_ais <- tibble(ais)
+```
+
+build the new table
+```{r}
+library('dplyr')
+library('tidyr')
+
+ais_ss <- count(tibble_ais, sport=tibble_ais$sport, sex=tibble_ais$sex)
+ais_ss_comp <- complete(ais_ss, sport, nesting(sex), fill = list(n = 0))
+count <- ais_ss_comp$n
+ais_ss_matrix <- matrix ( count , nrow = 2 , ncol = 10, dimnames = list(levels(ais_ss$sex), levels(ais_ss$sport)))
+```
+
+plot the barplot
+```{r}
+barplot(ais_ss_matrix, beside=TRUE, col = c('mistyrose', 'lightblue'), ylim=c(0,25), legend = c('f', 'm'))
+```
+
+determine if any of the columns holds missing values
+```{r}
+anyNA(tibble_ais)
+```
+
+boxplot of the main blood variables for the 'B_ball' sport
+```{r}
+B_ball <- tibble_ais[tibble_ais$sport == 'B_Ball',]
+B_ball_sel <- select(B_ball, rcc:hg)
+boxplot(B_ball_sel, col='green', main='B_ball')
+```
+
+scatter plot of the main blood variables for the 'B_ball' sport
+```{r}
+B_ball_sex <- select(B_ball, sex)
+plot(B_ball_sel, col = ifelse( B_ball_sex == 'f' , 'navy' , 'darkorange'), pch = ifelse(B_ball_sex=='f', 21, 25), main='B_ball')
+```
+
